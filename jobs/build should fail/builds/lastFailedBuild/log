@@ -1,0 +1,11 @@
+Started by user [8mha:////4CSWn5cpd1fq3y4eWHmqR9YIt/YEvm4+Vn8VCEjqr6V2AAAAlx+LCAAAAAAAAP9b85aBtbiIQTGjNKU4P08vOT+vOD8nVc83PyU1x6OyILUoJzMv2y+/JJUBAhiZGBgqihhk0NSjKDWzXb3RdlLBUSYGJk8GtpzUvPSSDB8G5tKinBIGIZ+sxLJE/ZzEvHT94JKizLx0a6BxUmjGOUNodHsLgAzWEgZu/dLi1CL9xJTczDwAj6GcLcAAAAA=[0madmin
+Building in workspace C:\Git\Jenkins\workspace\build should fail
+Run condition [Text Finder] enabling prebuild for step [BuilderChain]
+Checking debug\=\"true\"
+C:\Git\Jenkins\workspace\build should fail\web.config:
+    <compilation targetFramework="4.6.1" debug="true">
+Run condition [Text Finder] enabling perform for step [BuilderChain]
+Setting result to [Failed]
+Build step 'Conditional steps (multiple)' changed build result to FAILURE
+Build step 'Conditional steps (multiple)' marked build as failure
+Finished: FAILURE

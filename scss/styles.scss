@@ -1,9 +1,0 @@
-// import all the .scss partials (they should all begin with an underscore and not be declared here with their file extension nor the underscore).
-// this will ouput all the styles into the styles.css file.
-
-//global
-@import 'reset';
-
-//cross-view elements
-@import 'header';
-@import 'footer';

@@ -1,0 +1,22 @@
+Manifest-Version: 1.0
+Archiver-Version: Plexus Archiver
+Created-By: Apache Maven
+Built-By: cjohnson
+Build-Jdk: 1.6.0_26
+Extension-Name: text-finder-run-condition
+Specification-Title: Text finder condition for the Run Condition Plugi
+ n, to be used with http://wiki.jenkins-ci.org/display/JENKINS/Run+Con
+ dition+Plugin
+Implementation-Title: text-finder-run-condition
+Implementation-Version: 0.1
+Group-Id: org.jenkins-ci.plugins
+Short-Name: text-finder-run-condition
+Long-Name: Text Finder Run Condition Plugin
+Url: http://wiki.jenkins-ci.org/display/JENKINS/Text+Finder+Run+Condit
+ ion
+Plugin-Version: 0.1
+Hudson-Version: 1.409
+Jenkins-Version: 1.409
+Plugin-Dependencies: token-macro:1.5.1,run-condition:0.10
+Plugin-Developers: Chris Johnson:cjo9900:
+

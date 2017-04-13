@@ -1,0 +1,355 @@
+?xml version="1.0"?>
+<project name="Build" default="Build_Release" basedir="." xmlns="http://nant.sf.net/release/0.85/nant.xsd">
+
+	<!-- Global varialbes and defaults -->
+	<property name="Platform" value="Any CPU" />
+
+	<property name="Configuration" value="Release" overwrite="false" />
+	<property name="Debug" value="false" />
+	<property name="DebugConditional" value="" />
+	<property name="MSBuildVerbosity" value="Minimal" overwrite="false" />
+
+
+	<target name="Build_Release" depends="Release,Clean,RevertVersion,Build,CopyWeird" />
+
+	<target name="CopyWeird">
+		<!-- FRAGILE: This assumes we've got them all -->
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/AmazonS3/AmazonS3">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build/CssValidator" overwrite="true">
+ 			<fileset basedir="build/all/CssValidator">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/GrepTask/GrepTask">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/Jit">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy file="build/all/NAntMigrations/NAntMigrations/NAntMigrations/NAnt.DbMigrations.Tasks.exe" 
+			tofile="build/NAnt.DbMigrations.Tasks.dll" overwrite="true" />
+		<copy todir="build/NAntMigrations" overwrite="true">
+ 			<fileset basedir="build/all/NAntMigrations/NAntMigrations/NAntMigrations">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/Parallel/Parallel">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/ProjectContent">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/RazorShrinker/RazorShrinker.NAnt">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/Restrict/Restrict">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build/sass" overwrite="true">
+ 			<fileset basedir="build/all/SassTask/SassTask">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build/sass-cmd" overwrite="true">
+ 			<fileset basedir="build/all/SassTask/SassCommandLine">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/SlnProjects">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/SqlRunner/SqlRunner">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+		<copy todir="build" overwrite="true">
+ 			<fileset basedir="build/all/Yui Compressor/Projects/Yahoo.Yui.Compressor/Model">
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+	</target>
+
+
+	<!-- Select the configuration: Debug or Release -->
+	<target name="Debug">
+		<property name="Debug" value="true" />
+		<property name="Configuration" value="Debug" />
+		<property name="DebugConditional" value="DEBUG;TRACE;" />
+	</target>
+
+	<target name="Release">
+		<property name="Debug" value="false" />
+		<property name="Configuration" value="Release" />
+		<property name="DebugConditional" value="" />
+	</target>
+
+
+	<!-- Libs -->
+
+	<target name="replacestring">
+		<!-- Pass in ${filename}, ${content-from}, ${content-to} (literal strings, not regexes -->
+		<!-- echo message="In ${filename} changing from '${content-from}' to '${content-to}'" /-->
+
+		<loadfile file="${filename}" property="filecontents">
+			<filterchain>
+				<replacestring from="${content-from}" to="${content-to}" ignorecase="true" />
+			</filterchain>
+		</loadfile>
+		<echo file="${filename}" message="${string::trim-end(filecontents)}"/>
+	</target>
+
+	<script language="CSHARP" prefix="regex">
+		<references>
+			<include name="System.dll" />
+		</references>
+		<imports>
+			<import namespace="System.Text.RegularExpressions" />
+		</imports>
+		<code>
+			<![CDATA[
+			[Function("replace")]
+			public static string Replace( string Input, string Pattern, string Replace ) {
+				return Regex.Replace( Input, Pattern, Regex.Unescape(Replace), RegexOptions.Multiline );
+			}
+			]]>
+		</code>
+	</script>
+
+
+	<!-- Clean target will delete the current version -->
+	<target name="Clean"
+		description="remove generated files in the specified configuration">
+		<delete failonerror="false">
+			<fileset basedir=".">
+				<include name="**/bin/**" />
+				<include name="**/obj/**" />
+				<include name="**/Debug/**" />
+				<include name="**/Release/**" />
+				<include name="*.log" />
+				<include name="**/build/**" />
+				<include name="build/**" />
+				<include name="log/**" />
+			</fileset>
+		</delete>
+		<delete dir="build" if="${directory::exists('build')}" />
+		<delete dir="log" if="${directory::exists('log')}" />
+	</target>
+
+
+	<!-- Get the current version -->
+	<target name="GetVersion">
+		<mkdir dir="log" if="${not(directory::exists('log'))}" />
+
+		<if test="${directory::exists('.svn')}">
+			<!-- A bunch of mayhem because exec can't output to a variable -->
+			<exec program="svn.exe" workingdir="${project::get-base-directory()}" output="log/version.log" failonerror="true">
+				<arg value="info" />
+				<arg value="--xml" />
+			</exec>
+			<xmlpeek file="log/version.log"
+					 property="version-id"
+					 xpath="/info/entry/commit/@revision" />
+			<property name="version-name" value="svn-${version-id}" />
+
+			<echo>Current version from Subversion is ${version-id}</echo>
+		</if>
+
+		<if test="${directory::exists('.hg')}">
+			<!-- A bunch of mayhem because exec can't output to a variable -->
+			<exec program="hg.exe" workingdir="${project::get-base-directory()}" output="log/version.log" failonerror="true">
+				<arg value="log" />
+				<arg value="--limit=1" />
+				<arg value="--style=xml" />
+			</exec>
+			<xmlpeek file="log/version.log"
+					 property="version-id"
+					 xpath="/log/logentry/@revision" />
+			<xmlpeek file="log/version.log"
+					 property="version-name"
+					 xpath="/log/logentry/@node" />
+
+			<echo>Current version from Mercurial is ${version-id}, node is ${version-name}</echo>
+		</if>
+
+		<if test="${directory::exists('.git')}">
+			<!-- A bunch of mayhem because exec can't output to a variable -->
+			<exec program="git.exe" output="log/version.log" failonerror="false">
+				<arg value="log" />
+				<arg value="-1" />
+				<arg value="--format=%h" /><!-- %H is full hash, %h is short hash -->
+			</exec>
+			<loadfile file="log/version.log" property="version-name" />
+
+			<![CDATA[-- in git, version-id could be '# of commits' from "git log --format=%h | wc -l | sed 's/ //g'" but it doesn't seem that helpful --]]>
+			<property name="version-id" value="*" />
+
+			<echo>Current version from Git is ${version-id}, node is ${version-name}</echo>
+		</if>
+
+		<property name="version-name" value="${string::trim(version-name)}" />
+		<fail if="${version-id==''}" message="Can't determine version id" />
+		<fail if="${version-name==''}" message="Can't determine version name" />
+	</target>
+
+	<fileset id="AssemblyInfos" basedir=".">
+		<exclude name="**/-*-/**/AssemblyInfo.cs" />
+		<include name="**/AssemblyInfo.cs" />
+		<include name="GlobalAssemblyInfo.cs" />
+	</fileset>
+
+	<target name="SetVersion" depends="GetVersion,RevertVersion">
+
+		<!-- This isn't a regular expression, this is a hard-coded major/minor: -->
+		<property name="version-id-from" value=".*&quot;" />
+		<property name="version-id-to" value=".${version-id}&quot;" />
+		<property name="version-name-from" value="AssemblyDescription&#40; &quot;&quot;" />
+		<property name="version-name-to" value="AssemblyDescription&#40; &quot;${version-name}&quot;" />
+
+		<echo message="Changing from ${version-id-from} to ${version-id-to} and ${version-name-from} to ${version-name-to} in AssemblyInfo files" />
+
+		<foreach item="File" property="file">
+			<in>
+				<items refid="AssemblyInfos" />
+			</in>
+			<do>
+				<loadfile file="${file}" property="filecontents">
+					<filterchain>
+						<replacestring from="${version-id-from}" to="${version-id-to}" ignorecase="true" />
+						<replacestring from="${version-name-from}" to="${version-name-to}" ignorecase="true" />
+					</filterchain>
+				</loadfile>
+				<echo file="${file}" message="${filecontents}"/>
+			</do>
+		</foreach>
+
+	</target>
+
+	<target name="RevertVersion" descripiton="Put the files back so next build can change it">
+
+		<foreach item="File" property="file">
+			<in>
+				<items refid="AssemblyInfos" />
+			</in>
+			<do>
+				<if test="${directory::exists('.svn')}">
+					<exec program="svn.exe" failonerror="true">
+						<arg value="revert" />
+						<arg value="${file}" />
+					</exec>
+				</if>
+				<if test="${directory::exists('.hg')}">
+					<exec program="hg.exe" failonerror="true">
+						<arg value="revert" />
+						<arg value="--no-backup" />
+						<arg value="${file}" />
+					</exec>
+				</if>
+				<if test="${directory::exists('.git')}">
+					<exec program="git.exe" failonerror="false">
+						<arg value="checkout" />
+						<arg value="${file}" />
+					</exec>
+				</if>
+			</do>
+		</foreach>
+
+	</target>
+
+
+
+	<target name="Build"
+		depends="Clean,SetVersion,BuildSolution" />
+
+	<target name="BuildSolution" description="Compiles the solutions">
+
+		<property name="PlatformNoSpace" value="${string::replace(Platform,' ','')}" />
+
+		<foreach item="File" property="Solution">
+			<in>
+				<items basedir=".">
+					<exclude name="**/-*-/**/*.sln" />
+					<include name="**/*.sln" />
+				</items>
+			</in>
+			<do>
+				<property name="SolutionName" value="${path::get-file-name(Solution)}" />
+				<!--property name="nant.settings.currentframework" value="net-3.5" if="${SolutionName!='nant.jit.sln' and SolutionName!='Restrict.sln' and SolutionName!='Parallel.sln' and SolutionName!='SassTask.sln' and SolutionName!='AmazonS3Tasks.sln' and SolutionName!='GrepTask.sln'}" />
+				<property name="nant.settings.currentframework" value="net-4.0" if="${SolutionName=='nant.jit.sln' or SolutionName=='Restrict.sln' or SolutionName=='Parallel.sln' or SolutionName=='SassTask.sln' or SolutionName=='AmazonS3Tasks.sln' or SolutionName=='GrepTask.sln'}" /-->
+				<!-- FRAGILE: Build all as .net 4.0 now -->
+				<property name="nant.settings.currentframework" value="net-4.0" />
+
+				<call target="CompileSolution" />
+			</do>
+		</foreach>
+
+		<foreach item="Folder" property="Project">
+			<in>
+				<items basedir=".">
+					<exclude name="**/-*-/**/bin/${Configuration}" />
+					<include name="**/bin/${Configuration}" />
+				</items>
+			</in>
+			<do>
+				<call target="CopyProject" />
+			</do>
+		</foreach>
+
+	</target>
+
+	<target name="CompileSolution" description="Compiles 1 solution using msbuild">
+
+		<echo message="Building ${Solution} for ${Platform}: ${nant.settings.currentframework} ${Configuration} ${DebugConditional}"/>
+		<msbuild
+			project="${Solution}"
+			verbosity="${MSBuildVerbosity}"
+			failonerror="true">
+			<property name="Configuration" value="${Configuration}" />
+			<property name="Platform" value="${Platform}" />
+			<property name="debug" value="${Debug}" />
+			<property name="trace" value="${Debug}" />
+			<arg value='/m' />
+			<arg value='/p:DefineConstants="${DebugConditional}"' />
+		</msbuild>
+	</target>
+
+ 	<target name="CopyProject" descrption="Copy a project">
+
+		<property name="BasePath" value="${project::get-base-directory()}\" />
+		<property name="BinPath" value="${path::get-directory-name(Project)}" />
+		<property name="ProjectPath" value="${path::get-directory-name(BinPath)}" />
+		<property name="ProjectName" value="${path::get-file-name(ProjectPath)}" />
+
+		<property name="SourcePath" value="${string::replace(ProjectPath,BasePath,'')}" />
+		<property name="Dest" value="build/all/${SourcePath}" />
+
+ 		<echo message="Copy ${ProjectName} from [${Project}] to [${Dest}]"/>
+ 		<mkdir dir="${Dest}" unless="${directory::exists(Dest)}" />
+ 		<copy todir="${Dest}" overwrite="true">
+ 			<fileset basedir="${Project}">
+ 				<exclude name="**/*.pdb" if="${Configuration!='Debug'}" />
+ 				<include name="**/**" />
+ 			</fileset>
+ 		</copy>
+
+	</target>
+
+</project>
